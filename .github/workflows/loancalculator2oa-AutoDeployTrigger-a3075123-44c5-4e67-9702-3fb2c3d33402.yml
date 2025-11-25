@@ -1,0 +1,49 @@
+name: Trigger auto deployment for loancalculator2oa
+
+# When this action will be executed
+on:
+  # Automatically trigger it when detected changes in repo
+  push:
+    branches: 
+      [ main ]
+    paths:
+    - '**'
+    - '.github/workflows/loancalculator2oa-AutoDeployTrigger-a3075123-44c5-4e67-9702-3fb2c3d33402.yml'
+
+  # Allow manual trigger 
+  workflow_dispatch:      
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    permissions: 
+      id-token: write #This is required for requesting the OIDC JWT Token
+      contents: read #Required when GH token is used to authenticate with private repo
+
+    steps:
+      - name: Checkout to the branch
+        uses: actions/checkout@v2
+
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.LOANCALCULATOR2OA_AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.LOANCALCULATOR2OA_AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.LOANCALCULATOR2OA_AZURE_SUBSCRIPTION_ID }}
+
+      - name: Build and push container image to registry
+        uses: azure/container-apps-deploy-action@v2
+        with:
+          appSourcePath: ${{ github.workspace }}
+          _dockerfilePathKey_: _dockerfilePath_
+          _targetLabelKey_: _targetLabel_
+          registryUrl: 
+          registryUsername: ${{ secrets.LOANCALCULATOR2OA_REGISTRY_USERNAME }}
+          registryPassword: ${{ secrets.LOANCALCULATOR2OA_REGISTRY_PASSWORD }}
+          containerAppName: loancalculator2oa
+          resourceGroup: SuperAwesomeVirtualMachine_group
+          imageToBuild: default/[parameters('containerAppName')]:${{ github.sha }}
+          _buildArgumentsKey_: |
+            _buildArgumentsValues_
+
+
